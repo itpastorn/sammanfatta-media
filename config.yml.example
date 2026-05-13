@@ -4,6 +4,9 @@
 # Mapp där rapporter sparas (obligatorisk)
 output_dir: ~/Documents/sammanfatta-media/out
 
+# Mapp där transkriptioner sparas permanent (obligatorisk)
+transcripts_dir: ~/Documents/sammanfatta-media/transkriptioner
+
 # Inkorgsmapp för batch-URL:er — lämna tomt för att inaktivera
 inbox_dir: ""
 

@@ -13,22 +13,23 @@ Läs `~/.claude/skills/sammanfatta-media/config.yml` i början av varje körning
 
 Om filen saknas: be användaren kopiera `config.yml.example` till `config.yml` och fylla i sina sökvägar.
 
-Skriptmapp och temp-katalog — använd Python för att konstruera plattformsoberoende:
+Skriptmapp och kataloger — konstruera plattformsoberoende via Python:
 
 ```python
 from pathlib import Path
-import tempfile
 
-SKILL_DIR = Path.home() / ".claude" / "skills" / "sammanfatta-media"
-TEMP_DIR  = Path(tempfile.gettempdir())
+SKILL_DIR       = Path.home() / ".claude" / "skills" / "sammanfatta-media"
+TRANSCRIPTS_DIR = Path(config["transcripts_dir"]).expanduser()
+OUTPUT_DIR      = Path(config["output_dir"]).expanduser()
+TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
 ```
 
 Standardkommandon:
 
 ```bash
-# Hämta transkription
+# Hämta transkription — sparas permanent i transcripts_dir
 python "{SKILL_DIR}/hamta_transkription.py" <URL> \
-    --output "{TEMP_DIR}/sammanfatta-<videoid>.txt" \
+    --output "{TRANSCRIPTS_DIR}/sammanfatta-<videoid>.txt" \
     --lang <default_lang>
 
 # Bygg docx-rapport
@@ -79,6 +80,8 @@ Skriptet försöker i tur och ordning:
 3. Om bot-detection: automatiskt omförsök med `--cookies-from-browser <cookies_browser>`
 
 Vid framgång: gå direkt till Steg 3 (sammanfattning). Metadata sparas parallellt i `.meta.json`.
+
+Transkriptionen och dess `.meta.json` sparas permanent i `transcripts_dir`. De ligger kvar efter körningen och kan återanvändas.
 
 **Bot-detection-varning:** Om yt-dlp rapporterar "Sign in to confirm" körs cookies-läget automatiskt. Misslyckas det också: gå till Form C.
 
@@ -202,7 +205,7 @@ Default-struktur:
 2. **Sammanfattning** (från Steg 3)
 3. **Kritisk bedömning** (om diagnostik begärdes)
 4. **Källor** — alltid videoförankrade; Claudes egna källor endast vid diagnostik
-5. **Transkription** — endast om användaren uttryckligen begärt det
+5. **Transkription** — alltid med som sista sektion, med rubrik "Transkription" och källa angiven
 
 **Rapportbygge (docx):** Anropa `bygg_rapport.py` med en strukturerad dict.
 
