@@ -233,20 +233,23 @@ Normalisering: gemener, å→a, ä→a, ö→o, mellanslag→bindestreck, ta bor
 
 **PDF:** Konvertera från docx via pdf-skillen om tillgänglig.
 
-### Steg 5b — Språklig genomgång (OBLIGATORISKT före rapportleverans)
+### Steg 5b — Språklig genomgång (OBLIGATORISKT som sista steg för svenska rapporter)
 
-Genomgång görs automatiskt — inte som erbjudande. Verkställ ändringarna utan att presentera diagnostiken separat.
+Gäller alla rapporter på svenska — alltid, utan att fråga. Genomgången görs på texten **innan** Python-skriptet körs eller filen genereras. Verkställ ändringarna direkt i skriptkoden; presentera inte diagnostiken separat.
 
-Återkommande fynd att leta efter:
-- **Påhittade försvenskningar** → etablerad term eller kursiverat original
-- **Inkonsekvent transliterering** → välj ett och håll konsekvent
-- **Engelska fraser i svensk text** → översätt eller markera tydligt
+Återkommande fynd att leta efter och åtgärda:
+
+- **Hybridkonstruktioner med engelska förled** (*ghostskrev*, *ghostwriting-karriären*, *ghostwriting-uppdrag*) → ersätt med etablerad svensk form (*spökskrev*, *karriären som spökskrivare*, *spökskrivaruppdrag*)
+- **Påhittade försvenskningar** (*serieabusare*, *predikoutline*, *attenderar*) → etablerad term eller kursiverat original
+- **Inkonsekvent transliterering** (*kerubim* vs *cherubim*) → välj ett och håll konsekvent
+- **Engelska fraser inbäddade i svensk löptext** → översätt eller markera tydligt
+- **Grammatikfel i genus och numerus** (*ett sträckt hand* → *en sträckt hand*; *ett uppgor* → *en uppgörelse*)
 - **Oidiomatiska metaforer**
 - **Raka citattecken** → typografiska (hanteras av bygg_rapport automatiskt i docx)
 - **Faktafel i ordagranna citat** → dubbelkolla mot transkriptet
 - **YAML-nyckelnamn** → ska ha svenska bokstäver i .md-rapporter
 
-Användaren ser den städade versionen direkt.
+Användaren ser den städade versionen direkt — aldrig ett utkast.
 
 ### Steg 6 — Leverans
 
