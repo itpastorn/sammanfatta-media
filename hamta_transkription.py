@@ -29,14 +29,34 @@ def get_video_id(url: str) -> str | None:
     return m.group(1) if m else None
 
 
+# Extractor-args som kringgår YouTubes n-challenge och 429-strypning.
+# web-klienten kräver en JS-runtime för att lösa n-challenge; android-klienten
+# gör det inte och faller ofta igenom även när web-klienten fått 429.
+ANDROID_CLIENT = ['--extractor-args', 'youtube:player_client=android']
+
+
+def _needs_android_fallback(stderr: str) -> bool:
+    return ('429' in stderr
+            or 'Requested format is not available' in stderr
+            or 'n challenge' in stderr)
+
+
 def get_metadata(url: str) -> dict | None:
     """Hämta info-JSON med titel, beskrivning, kapitel m.m."""
     cmd = [
-        'yt-dlp', '--skip-download', '--dump-json',
+        'yt-dlp', '--ignore-config', '--skip-download', '--dump-json',
         '--no-warnings', '--no-playlist',
         url,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    # Bot-detection: försök med cookies om vi fick 403 eller "Sign in"
+    if result.returncode != 0 and ('Sign in' in result.stderr or '403' in result.stderr):
+        result = subprocess.run(cmd + ['--cookies-from-browser', 'firefox'],
+                                capture_output=True, text=True, timeout=60)
+    # 429/n-challenge/format-fel: försök med android-klienten
+    if result.returncode != 0 and _needs_android_fallback(result.stderr):
+        result = subprocess.run(cmd + ANDROID_CLIENT,
+                                capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
         print(f"yt-dlp metadata-fel: {result.stderr.strip()}", file=sys.stderr)
         return None
@@ -59,7 +79,7 @@ def fetch_captions(url: str, out_dir: str, langs: list[str]) -> tuple[Path | Non
         ('--write-auto-subs', 'auto'),
     ]:
         cmd = [
-            'yt-dlp', '--skip-download', write_flag,
+            'yt-dlp', '--ignore-config', '--skip-download', write_flag,
             '--sub-langs', lang_str,
             '--sub-format', 'vtt',
             '-o', f'{out_dir}/yt-%(id)s.%(ext)s',
@@ -90,6 +110,18 @@ def fetch_captions(url: str, out_dir: str, langs: list[str]) -> tuple[Path | Non
                     if preferred:
                         return preferred[0], f'{source_label}+cookies'
                 return vtt_files[0], f'{source_label}+cookies'
+
+        # 429/n-challenge/format-fel: försök med android-klienten
+        if _needs_android_fallback(result.stderr):
+            result3 = subprocess.run(cmd + ANDROID_CLIENT,
+                                     capture_output=True, text=True, timeout=120)
+            vtt_files = list(Path(out_dir).glob(pattern))
+            if vtt_files:
+                for lang in langs:
+                    preferred = [f for f in vtt_files if f.stem.endswith(f'.{lang}')]
+                    if preferred:
+                        return preferred[0], f'{source_label}+android'
+                return vtt_files[0], f'{source_label}+android'
 
     return None, None
 
