@@ -148,6 +148,49 @@ def add_heading(doc: Document, text: str, level: int = 1):
     return h
 
 
+def add_table(doc: Document, huvud: list[str] | None, rader: list[list[str]]) -> None:
+    """Lägg till en enkel tabell med valfri rubrikrad.
+
+    Args:
+        doc:   python-docx Document
+        huvud: lista med kolumnrubriker (None = ingen rubrikrad)
+        rader: lista av rader, varje rad är en lista av strängar
+    """
+    if not rader and not huvud:
+        return
+
+    num_cols = len(huvud) if huvud else len(rader[0]) if rader else 0
+    if num_cols == 0:
+        return
+
+    all_rows = ([huvud] if huvud else []) + rader
+    table = doc.add_table(rows=len(all_rows), cols=num_cols)
+    table.style = "Table Grid"
+
+    for row_idx, row_data in enumerate(all_rows):
+        row_obj = table.rows[row_idx]
+        is_header = (huvud is not None and row_idx == 0)
+        for col_idx, cell_text in enumerate(row_data):
+            cell = row_obj.cells[col_idx]
+            cell.text = ""
+            p = cell.paragraphs[0]
+            run = p.add_run(str(cell_text))
+            _apply_font(run)
+            run.font.size = Pt(9)
+            if is_header:
+                run.bold = True
+                # Ljus bakgrund på rubrikrad via shading
+                tc = cell._tc
+                tcPr = tc.get_or_add_tcPr()
+                shd = OxmlElement("w:shd")
+                shd.set(qn("w:val"), "clear")
+                shd.set(qn("w:color"), "auto")
+                shd.set(qn("w:fill"), "D9E1F2")
+                tcPr.append(shd)
+
+    doc.add_paragraph()  # luft efter tabellen
+
+
 # -----------------------------------------------------------------------------
 # Post-processorer (smart quotes, zoom-fix)
 # -----------------------------------------------------------------------------
@@ -238,16 +281,28 @@ def bygg_rapport(data: dict, output_path: str | Path) -> Path:
                     "rubrik": "Översikt",
                     "stycken": ["paragraf 1", "paragraf 2", ...],
                     "bullets": [("Etikett: ", "text"), ...],   # frivilligt
+                    "tabell": {                                 # frivilligt
+                        "huvud": ["Kol 1", "Kol 2", ...],      #   None = ingen rubrikrad
+                        "rader": [["v1", "v2"], ["v3", "v4"]],
+                    },
                     "underrubriker": [                          # frivilligt
                         {
                             "rubrik": "Tes",
                             "stycken": [...],
                             "bullets": [...],
+                            "tabell": { ... },                  # samma struktur som ovan
                         },
                     ],
                 },
             ],
         }
+
+    Tabellstöd (add_table):
+        - Rubrikrad får blå bakgrund (D9E1F2) och fetstil.
+        - Teckenstorlek 9 pt i alla celler.
+        - Table Grid-stil (synliga kanter).
+        - Ett tomt stycke läggs automatiskt till efter tabellen.
+        - Både sektion- och underrubriker-nivån stödjer "tabell"-nyckeln.
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +330,9 @@ def bygg_rapport(data: dict, output_path: str | Path) -> Path:
                 add_labeled_bullet(doc, bullet[0], bullet[1])
             else:
                 add_bullet(doc, bullet)
+        if "tabell" in sektion:
+            tbl = sektion["tabell"]
+            add_table(doc, tbl.get("huvud"), tbl.get("rader", []))
         for under in sektion.get("underrubriker", []):
             add_heading(doc, under["rubrik"], level=2)
             for stycke in under.get("stycken", []):
@@ -284,6 +342,9 @@ def bygg_rapport(data: dict, output_path: str | Path) -> Path:
                     add_labeled_bullet(doc, bullet[0], bullet[1])
                 else:
                     add_bullet(doc, bullet)
+            if "tabell" in under:
+                tbl = under["tabell"]
+                add_table(doc, tbl.get("huvud"), tbl.get("rader", []))
 
     doc.save(str(output_path))
 
